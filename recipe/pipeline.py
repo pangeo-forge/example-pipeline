@@ -64,6 +64,13 @@ class Pipeline(pangeo_forge.AbstractPipeline):
         # This can be ignored for now.
         pass
 
+    def get_test_parameters(self, defaults: dict):
+        parameters = dict(defaults)  # copy the defaults
+        parameters["days"] = defaults["days"][:5]
+        parameters["cache_location"] = "memory://cache/"
+        parameters["target_location"] = "memory://target.zarr"
+        return parameters
+
     # The `Flow` definition is where you assemble your pipeline. We recommend using
     # Prefects Functional API: https://docs.prefect.io/core/concepts/flows.html#functional-api
     # Everything should happen in a `with Flow(...) as flow` block, and a `flow` should be returned.
