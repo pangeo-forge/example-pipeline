@@ -14,7 +14,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install git+https://github.com/pangeo-forge/pangeo-forge
-    - name: Test with pytest
+        # TODO: How do we manage environments / dependencies?
+        pip install git+https://github.com/pangeo-forge/pangeo-forge h5netcdf
+    - name: Test the pipeline
       run: |
         PYTHONPATH=recipe python ./.github/workflows/scripts/test_pipeline.py
