@@ -1,0 +1,21 @@
+name: Test Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # TODO: How do we manage environments / dependencies?
+        pip install git+https://github.com/pangeo-forge/pangeo-forge h5netcdf
+    - name: Test the pipeline
+      run: |
+        PYTHONPATH=recipe python ./.github/workflows/scripts/test_pipeline.py
