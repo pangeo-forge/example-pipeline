@@ -47,7 +47,7 @@ class Pipeline(pangeo_forge.AbstractPipeline):
     days = Parameter(
         # All parameters have a "name" and should have a default value.
         "days",
-        default=pd.date_range("1981-09-01", "2020-09-31", freq="D").strftime("%Y-%m-%d").tolist(),
+        default=pd.date_range("1981-09-01", "2020-09-30", freq="D").strftime("%Y-%m-%d").tolist(),
     )
     cache_location = Parameter(
         "cache_location", default=f"gs://pangeo-forge-scratch/cache/{name}.zarr"
