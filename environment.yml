@@ -1,0 +1,9 @@
+name: pangeo-python-pipeline
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - h5netcdf
+  - pip:
+    - git+https://github.com/pangeo-forge/pangeo-forge.git
+    - git+https://github.com/pangeo-data/rechunker.git
