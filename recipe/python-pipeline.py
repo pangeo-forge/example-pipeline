@@ -3,9 +3,11 @@ import os
 import pandas as pd
 from pangeo_forge.recipe import NetCDFtoZarrSequentialRecipe
 from pangeo_forge.storage import CacheFSSpecTarget, FSSpecTarget
-from pangeo_forge.executors import PythonPipelineExecutor
+from pangeo_forge.executors import PythonPipelineExecutor, PrefectPipelineExecutor
 import shutil
 import tempfile
+import prefect
+from prefect import task, Flow
 
 def source_url(day: str) -> str:
     """
@@ -42,6 +44,13 @@ target = FSSpecTarget(fs_local, target_dir_name)
 recipe.input_cache = cache_target
 recipe.target = target
 pipeline = recipe.to_pipelines()
-executor = PythonPipelineExecutor()
+# executor = PythonPipelineExecutor()
+executor = PrefectPipelineExecutor()
+# This is also a prefect flow
 plan = executor.pipelines_to_plan(pipeline)
-executor.execute_plan(plan)
+print(plan)
+plan.register(project_name="pangeo-forge")
+# executor.execute_plan(plan)
+# flow.run() We could run our flow locally using the flow's run method but we'll be running this from Cloud!
+# Right now this fails because the files aren't being downloaded, need to look at https://pangeo-forge.readthedocs.io/en/latest/recipes.html#storage
+# `prefect run flow --name "Rechunker" --project "pangeo-forge"`

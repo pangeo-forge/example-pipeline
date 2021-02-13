@@ -23,4 +23,15 @@ Test the output in a python interpreter:
 >>> ds = xr.open_zarr(f"{os.getcwd()}/recipe/noaa_sst.zarr")
 ```
 
-## Run the example with Prefect
+## Run the example on Prefect Cloud
+
+Pre-requisite:
+* Create an account and project "pangeo-forge" on cloud.prefect.io
+* Install prefect 
+
+Login to prefect
+Create + run a local agent
+Run the workflow
+```
+prefect run flow --name "Rechunker" --project "pangeo-forge"
+```
