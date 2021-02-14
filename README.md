@@ -11,8 +11,8 @@ Create a local Zarr store:
 
 ```bash
 conda env create -f=envirnoment.yml
-conda activate pangeo-python-pipeline
-python recipes/python-pipeline.py
+conda activate pangeo-pipeline
+python recipes/pipeline.py
 ```
 
 Test the output in a python interpreter:
@@ -26,12 +26,20 @@ Test the output in a python interpreter:
 ## Run the example on Prefect Cloud
 
 Pre-requisite:
-* Create an account and project "pangeo-forge" on cloud.prefect.io
+* Create an account on cloud.prefect.io
 * Install prefect 
 
-Login to prefect
-Create + run a local agent
-Run the workflow
+Authenticate with prefect, create the `pangeo-forge` project and start a local agent
+
+```bash
+export PREFECT_TOKEN=XXX
+prefect auth login -t $PREFECT_TOKEN
+export PREFECT__CLOUD__AGENT__AUTH_TOKEN=$(prefect auth create-token -n my-runner-token -s RUNNER)
+prefect create project pangeo-forge
+prefect agent local start
 ```
+
+Run the workflow
+```bash
 prefect run flow --name "Rechunker" --project "pangeo-forge"
 ```
