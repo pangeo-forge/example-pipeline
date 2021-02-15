@@ -18,7 +18,7 @@ parser.add_argument('--storage', help='Optional argument to store data remotely,
 args = parser.parse_args()
 
 # NOAA SST Specific Functions for generating a list of URLs
-def source_url(day: str) -> str:
+def get_source_url(day: str) -> str:
     """
     Format the URL for a specific day.
     """
@@ -41,7 +41,6 @@ recipe = NetCDFtoZarrSequentialRecipe(
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
 if args.storage == 's3':
-    # Read the config file
     with open(f"{this_dir}/config.yml") as config_file:
         config = yaml.safe_load(config_file)
     fs = s3fs.S3FileSystem(key=config['MY_AWS_KEY'], secret=config['MY_AWS_SECRET'])
@@ -64,7 +63,6 @@ pipeline = recipe.to_pipelines()
 
 if args.execution_env == 'prefect':
     executor = PrefectPipelineExecutor()
-    print(executor)
     plan = executor.pipelines_to_plan(pipeline)
     # The 'plan' is a prefect.Flow
     plan.register(project_name="pangeo-forge")
