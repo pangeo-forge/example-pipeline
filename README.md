@@ -26,7 +26,7 @@ Test the output in a python interpreter:
 ## Run the example on Prefect Cloud
 
 Pre-requisites:
-* Create an account on cloud.prefect.io
+* Create an account on [cloud.prefect.io](cloud.prefect.io)
 * AWS account and credentials for S3 read/write access
 
 Authenticate with prefect, create the `pangeo-forge` project and start a local agent:
