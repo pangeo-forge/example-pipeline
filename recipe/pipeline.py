@@ -1,24 +1,27 @@
-# There are many comments in this example. Remove them when you've
-# finalized your pipeline.
+# Standard library imports.
+import argparse
+import os
+import shutil
+import s3fs
+import tempfile
+import yaml
+
+# Related third party imports.
+import fsspec
+from fsspec.implementations.local import LocalFileSystem
 import pandas as pd
-import pangeo_forge
-import pangeo_forge.utils
-from pangeo_forge.tasks.http import download
-from pangeo_forge.tasks.xarray import combine_and_write
-from pangeo_forge.tasks.zarr import consolidate_metadata
-from prefect import Flow, Parameter, task, unmapped
+from pangeo_forge.recipe import NetCDFtoZarrSequentialRecipe
+from pangeo_forge.storage import CacheFSSpecTarget, FSSpecTarget
+from pangeo_forge.executors import PythonPipelineExecutor, PrefectPipelineExecutor
+from prefect import task, Flow
 
-# We use Prefect to manage pipelines. In this pipeline we'll see
-# * Tasks: https://docs.prefect.io/core/concepts/tasks.html
-# * Flows: https://docs.prefect.io/core/concepts/flows.html
-# * Parameters: https://docs.prefect.io/core/concepts/parameters.html
+parser = argparse.ArgumentParser()
+parser.add_argument('--execution_env', help='Optional argument to run a flow remotely, such as on prefect cloud')
+parser.add_argument('--storage', help='Optional argument to store data remotely, such as on AWS')
+args = parser.parse_args()
 
-# A Task is one step in your pipeline. The `source_url` takes a day
-# like '2020-01-01' and returns the URL of the raw data.
-
-
-@task
-def source_url(day: str) -> str:
+# NOAA SST Specific Functions for generating a list of URLs
+def get_source_url(day: str) -> str:
     """
     Format the URL for a specific day.
     """
@@ -30,87 +33,44 @@ def source_url(day: str) -> str:
     )
     return source_url_pattern.format(day=day)
 
+days = pd.date_range("1981-09-01", "1981-09-10", freq="D").strftime("%Y-%m-%d").tolist()
+source_urls = [get_source_url(day) for day in days]
 
-# All pipelines in pangeo-forge must inherit from pangeo_forge.AbstractPipeline
+# Create the pangeo-forge recipe
+recipe = NetCDFtoZarrSequentialRecipe(
+    input_urls=source_urls,
+    sequence_dim="time"
+)
+this_dir = os.path.dirname(os.path.abspath(__file__))
 
+storage_protocol = args.storage.split(':')[0]
+fs = fsspec.get_filesystem_class(storage_protocol)()
 
-class Pipeline(pangeo_forge.AbstractPipeline):
-    # You must define a few pieces of metadata in your pipeline.
-    # name is the pipeline name, typically the name of the dataset.
-    name = "example"
-    # repo is the URL of the GitHub repository this will be stored at.
-    repo = "pangeo-forge/example-pipeline"
+if fs.__class__.__name__ == 'S3FileSystem':
+    with open(f"{this_dir}/config.yml") as config_file:
+        config = yaml.safe_load(config_file)
+    fs.key=config['MY_AWS_KEY']
+    fs.secret=config['MY_AWS_SECRET']
+    # REVIEW: Where should cache be stored in S3FileSystem? Should we create a temporary directory?
+    cache_path=f"{args.storage}/cache"
 
-    # Some pipelines take parameters. These are things like subsets of the
-    # data to select or where to write the data.
-    # See https://docs.prefect.io/core/concepts/parameters.htm for more
-    days = Parameter(
-        # All parameters have a "name" and should have a default value.
-        "days",
-        default=pd.date_range("1981-09-01", "1981-09-10", freq="D").strftime("%Y-%m-%d").tolist(),
-    )
-    cache_location = Parameter(
-        "cache_location", default=f"gs://pangeo-forge-scratch/cache/{name}.zarr"
-    )
-    target_location = Parameter("target_location", default=f"gs://pangeo-forge-scratch/{name}.zarr")
+if fs.__class__.__name__ == 'LocalFileSystem':
+    cache_dir = tempfile.TemporaryDirectory()
+    cache_path = cache_dir.name
 
-    @property
-    def sources(self):
-        # This can be ignored for now.
-        pass
+target = FSSpecTarget(fs, root_path=args.storage)
+cache_target = CacheFSSpecTarget(fs=fs, root_path=cache_path)
+recipe.input_cache = cache_target
+recipe.target = target
+pipeline = recipe.to_pipelines()
 
-    @property
-    def targets(self):
-        # This can be ignored for now.
-        pass
-
-    def get_test_parameters(self, defaults: dict):
-        parameters = dict(defaults)  # copy the defaults
-        parameters["days"] = defaults["days"][:5]
-        parameters["cache_location"] = "memory://cache/"
-        parameters["target_location"] = "memory://target.zarr"
-        return parameters
-
-    # The `Flow` definition is where you assemble your pipeline. We recommend using
-    # Prefects Functional API: https://docs.prefect.io/core/concepts/flows.html#functional-api
-    # Everything should happen in a `with Flow(...) as flow` block, and a `flow` should be returned.
-    @property
-    def flow(self):
-        with Flow(self.name) as flow:
-            # Use map the `source_url` task to each day. This returns a mapped output,
-            # a list of string URLS. See
-            # https://docs.prefect.io/core/concepts/mapping.html#prefect-approach
-            # for more. We'll have one output URL per day.
-            sources = source_url.map(self.days)
-
-            # Map the `download` task (provided by prefect) to download the raw data
-            # into a cache.
-            # Mapped outputs (sources) can be fed straight into another Task.map call.
-            # If an input is just a regular argument that's not a mapping, it must
-            # be wrapepd in `prefect.unmapped`.
-            # https://docs.prefect.io/core/concepts/mapping.html#unmapped-inputs
-            # nc_sources will be a list of cached URLs, one per input day.
-            nc_sources = download.map(sources, cache_location=unmapped(self.cache_location))
-
-            # The individual files would be a bit too small for analysis. We'll use
-            # pangeo_forge.utils.chunk to batch them up. We can pass mapped outputs
-            # like nc_sources directly to `chunk`.
-            chunked = pangeo_forge.utils.chunk(nc_sources, size=5)
-
-            # Combine all the chunked inputs and write them to their final destination.
-            writes = combine_and_write.map(
-                chunked,
-                unmapped(self.target_location),
-                append_dim=unmapped("time"),
-                concat_dim=unmapped("time"),
-            )
-
-            # Consolidate the metadata for the final dataset.
-            consolidate_metadata(self.target_location, writes=writes)
-
-        return flow
-
-
-# pangeo-forge and Prefect require that a `flow` be present at the top-level
-# of this module.
-flow = Pipeline().flow
+if args.execution_env == 'prefect':
+    executor = PrefectPipelineExecutor()
+    plan = executor.pipelines_to_plan(pipeline)
+    plan.register(project_name="pangeo-forge")
+    # plan.run() <-- This will run the plan on a local system. To run on a CloudFlowRunner, must use the following prefect CLI command:
+    os.system("prefect run flow --name \"Rechunker\" --project \"pangeo-forge\"")
+else:
+    executor = PythonPipelineExecutor()
+    plan = executor.pipelines_to_plan(pipeline)
+    executor.execute_plan(plan)
