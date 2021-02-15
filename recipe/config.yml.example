@@ -1,7 +1,2 @@
 MY_AWS_KEY: XXX
 MY_AWS_SECRET: XXX
-s3:
-  target_bucket: XXX
-  target_path: pangeo-forge/target
-  cache_bucket: XXX
-  cache_path: pangeo-forge/cache

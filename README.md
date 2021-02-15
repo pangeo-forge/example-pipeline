@@ -12,7 +12,7 @@ Create a local Zarr store:
 ```bash
 conda env create -f=environment.yml
 conda activate pangeo-pipeline
-python recipes/pipeline.py
+python recipes/pipeline.py --storage 'file://recipe/noaa_sst.zarr'
 ```
 
 Test the output in a python interpreter:
@@ -50,7 +50,7 @@ Update the values in `config.yml` for prefect runners to write to a remote cache
 Finally run the workflow:
 
 ```bash
-python recipe/pipeline.py --execution_env 'prefect' --storage 's3'
+python recipe/pipeline.py --execution_env 'prefect' --storage 's3://YOUR_BUCKET/YOUR_PATH/noaa_sst.zarr'
 ```
 
 ## Github Workflows

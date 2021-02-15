@@ -7,6 +7,7 @@ import tempfile
 import yaml
 
 # Related third party imports.
+import fsspec
 from fsspec.implementations.local import LocalFileSystem
 import pandas as pd
 from pangeo_forge.recipe import NetCDFtoZarrSequentialRecipe
@@ -37,27 +38,27 @@ source_urls = [get_source_url(day) for day in days]
 
 # Create the pangeo-forge recipe
 recipe = NetCDFtoZarrSequentialRecipe(
-    input_urls=sources,
+    input_urls=source_urls,
     sequence_dim="time"
 )
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
-if args.storage == 's3':
+storage_protocol = args.storage.split(':')[0]
+fs = fsspec.get_filesystem_class(storage_protocol)()
+
+if fs.__class__.__name__ == 'S3FileSystem':
     with open(f"{this_dir}/config.yml") as config_file:
         config = yaml.safe_load(config_file)
-    fs = s3fs.S3FileSystem(key=config['MY_AWS_KEY'], secret=config['MY_AWS_SECRET'])
-    target_path = f"{config['s3']['target_bucket']}/{config['s3']['target_path']}/noaa_sst.zarr"
-    cache_path = f"{config['s3']['cache_bucket']}/{config['s3']['cache_path']}"
-else:
-    fs = LocalFileSystem()
-    target_path = os.path.join(this_dir, 'noaa_sst.zarr')
-    if os.path.exists(target_path):
-        shutil.rmtree(target_path)
-    os.mkdir(target_path)
+    fs.key=config['MY_AWS_KEY']
+    fs.secret=config['MY_AWS_SECRET']
+    # REVIEW: Where should cache be stored in S3FileSystem? Should we create a temporary directory?
+    cache_path=f"{args.storage}/cache"
+
+if fs.__class__.__name__ == 'LocalFileSystem':
     cache_dir = tempfile.TemporaryDirectory()
     cache_path = cache_dir.name
 
-target = FSSpecTarget(fs, root_path=target_path)
+target = FSSpecTarget(fs, root_path=args.storage)
 cache_target = CacheFSSpecTarget(fs=fs, root_path=cache_path)
 recipe.input_cache = cache_target
 recipe.target = target
