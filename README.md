@@ -10,7 +10,7 @@ Pre-requisites:
 Create a local Zarr store:
 
 ```bash
-conda env create -f=envirnoment.yml
+conda env create -f=environment.yml
 conda activate pangeo-pipeline
 python recipes/pipeline.py
 ```
