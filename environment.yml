@@ -5,6 +5,7 @@ channels:
 dependencies:
   - h5netcdf
   - s3fs
+  - prefect
   - pip:
     - git+https://github.com/pangeo-forge/pangeo-forge.git
     - git+https://github.com/pangeo-data/rechunker.git
