@@ -31,7 +31,7 @@ def source_url(day: str) -> str:
     return source_url_pattern.format(day=day)
 
 days = pd.date_range("1981-09-01", "1981-09-10", freq="D").strftime("%Y-%m-%d").tolist()
-sources = list(map(source_url, days))
+source_urls = [get_source_url(day) for day in days]
 
 # Create the pangeo-forge recipe
 recipe = NetCDFtoZarrSequentialRecipe(
