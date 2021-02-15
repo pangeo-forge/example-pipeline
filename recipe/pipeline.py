@@ -1,16 +1,18 @@
+# Standard library imports.
 import argparse
-from fsspec.implementations.local import LocalFileSystem
 import os
-import pandas as pd
-from pangeo_forge.recipe import NetCDFtoZarrSequentialRecipe
-from pangeo_forge.storage import CacheFSSpecTarget, FSSpecTarget
-from pangeo_forge.executors import PythonPipelineExecutor, PrefectPipelineExecutor
-import prefect
-from prefect import task, Flow
 import shutil
 import s3fs
 import tempfile
 import yaml
+
+# Related third party imports.
+from fsspec.implementations.local import LocalFileSystem
+import pandas as pd
+from pangeo_forge.recipe import NetCDFtoZarrSequentialRecipe
+from pangeo_forge.storage import CacheFSSpecTarget, FSSpecTarget
+from pangeo_forge.executors import PythonPipelineExecutor, PrefectPipelineExecutor
+from prefect import task, Flow
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--execution_env', help='Optional argument to run a flow remotely, such as on prefect cloud')
