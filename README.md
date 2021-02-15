@@ -42,7 +42,7 @@ prefect agent local start
 Configure S3 Access:
 
 ```bash
-cp recipe/config.yml.example config.yml
+cp recipe/config.yml.example recipe/config.yml
 ```
 
 Update the values in `config.yml` for prefect runners to write to a remote cache and target.
