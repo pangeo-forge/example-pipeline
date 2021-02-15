@@ -67,7 +67,6 @@ pipeline = recipe.to_pipelines()
 if args.execution_env == 'prefect':
     executor = PrefectPipelineExecutor()
     plan = executor.pipelines_to_plan(pipeline)
-    # The 'plan' is a prefect.Flow
     plan.register(project_name="pangeo-forge")
     # plan.run() <-- This will run the plan on a local system. To run on a CloudFlowRunner, must use the following prefect CLI command:
     os.system("prefect run flow --name \"Rechunker\" --project \"pangeo-forge\"")
