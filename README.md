@@ -25,11 +25,11 @@ Test the output in a python interpreter:
 
 ## Run the example on Prefect Cloud
 
-Pre-requisite:
+Pre-requisites:
 * Create an account on cloud.prefect.io
-* Install prefect 
+* AWS account and credentials for S3 read/write access
 
-Authenticate with prefect, create the `pangeo-forge` project and start a local agent
+Authenticate with prefect, create the `pangeo-forge` project and start a local agent:
 
 ```bash
 export PREFECT_TOKEN=XXX
@@ -39,7 +39,20 @@ prefect create project pangeo-forge
 prefect agent local start
 ```
 
-Run the workflow
+Configure S3 Access:
+
 ```bash
-prefect run flow --name "Rechunker" --project "pangeo-forge"
+cp recipe/config.yml.example config.yml
 ```
+
+Update the values in `config.yml` for prefect runners to write to a remote cache and target.
+
+Finally run the workflow:
+
+```bash
+python recipe/pipeline.py --execution_env 'prefect' --storage 's3'
+```
+
+## Github Workflows
+
+NOTE: The scripts and workflows in `.github/` are out of date with the current example code.
